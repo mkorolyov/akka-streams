@@ -18,6 +18,7 @@ class CurrencyHttpEndpointActor
   with MongoDbKernel {
 
   override val ec = context.dispatcher
+  override val as = context.system
 
   val loader = context.actorOf(Props(new CurrencyLoaderActor))
 

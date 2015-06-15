@@ -1,7 +1,8 @@
 package mkorolyov.service
 
-import akka.actor.ActorRef
+import akka.actor.{ActorSystem, ActorRef}
 import akka.http.scaladsl.model.ws.{TextMessage, Message}
+import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl._
 import akka.util.Timeout
 import mkorolyov.db.DbKernel
@@ -18,6 +19,7 @@ trait CurrencyService {
   implicit val timeout: Timeout = 5 seconds
 
   val loader: ActorRef
+  val as: ActorSystem
   implicit val ec: ExecutionContext
 
   def actual: Flow[Message, Message, Unit] = {
@@ -48,16 +50,28 @@ trait CurrencyService {
   }
 
   def history: Flow[Message, Message, Unit] = {
+    implicit val fm = ActorFlowMaterializer.create(as)
     Flow[Message] map {
       case TextMessage.Strict(isoCode) if isoCode.nonEmpty ⇒
+        val histo = currencyRepo.load(isoCode)
         val actual =
-          Source((loader ? CurrencyLoaderActor.Load).mapTo[List[Rate]])
-            .map(_.filter(_.code == isoCode))
-        val histo = currencyRepo.load(isoCode).map(List(_))
+          Source((loader ? CurrencyLoaderActor.Load).mapTo[List[Rate]]
+            .map(
+              _.find(_.code == isoCode)
+                .map(r ⇒ Source(List(r)))
+                .getOrElse(Source.empty[Rate])
+            )
+          ).flatten(FlattenStrategy.concat[Rate])
 
-        TextMessage.Streamed(
-          (actual ++ histo).map(l ⇒ if (l.isEmpty) "" else Json.toJson(l).toString)
-        )
+        val out = Sink.fold[String, String]("")(_ + _)
+        val printJson = Flow[Rate].map(Json.toJson(_).toString())
+
+        val result = FlowGraph.closed(out) { implicit builder ⇒ out ⇒
+          import FlowGraph.Implicits._
+          (actual ++ histo) ~> printJson ~> out
+        }.run
+
+        TextMessage.Streamed(Source(result))
 
       case other ⇒ TextMessage.Strict("unsupported request")
     }
