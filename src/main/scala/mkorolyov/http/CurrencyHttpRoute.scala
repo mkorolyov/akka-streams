@@ -1,36 +1,28 @@
 package mkorolyov.http
 
-import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives
-import akka.stream.scaladsl.Flow
-import mkorolyov.db.DbKernel
-import play.api.libs.json.Json
+import mkorolyov.service.CurrencyService
 
 trait CurrencyHttpRoute extends Directives { self: CurrencyService ⇒
 
+  private val currencies = "currencies"
+  private val histo = "histo"
+
   val route =
-    path("currencies" / "histo") {
-      decodeRequest {
-        logRequestResult("currencies/histo") {
-          get {
-            handleWebsocketMessages(histo)
+    decodeRequest {
+      pathPrefix(currencies) {
+        path(histo) {
+          logRequestResult(s"$currencies/$histo") {
+            get {
+              handleWebsocketMessages(history)
+            }
+          }
+        } ~ pathEnd {
+          logRequestResult(currencies) {
+            handleWebsocketMessages(actual)
           }
         }
+
       }
     }
-}
-
-trait CurrencyService {
-  self: DbKernel ⇒
-
-  def histo: Flow[Message, Message, Unit] = {
-    Flow[Message] map {
-      case TextMessage.Strict(isoCode) if isoCode.nonEmpty ⇒
-        TextMessage.Streamed(
-          currencyRepo.load(isoCode)
-            .map(rate ⇒ Json.toJson(rate).toString())
-        )
-      case _ => TextMessage.Strict("Not supported message type")
-    }
-  }
 }

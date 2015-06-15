@@ -16,9 +16,11 @@ import scalaz._
 import Scalaz._
 
 trait CurrencyRepository {
-  def update(isoCode: String, value: Double): Unit
+  def update(rate: Rate): Unit
 
   def load(isoCode: String): Source[Rate, Unit]
+
+  def last(isoCode: String): Future[Option[Rate]]
 }
 
 trait MongoCurrencyRespository extends CurrencyRepository with BsonDsl {
@@ -28,15 +30,14 @@ trait MongoCurrencyRespository extends CurrencyRepository with BsonDsl {
 
   private lazy val bsonDao = BsonDao[Rate, String](MongoContext.db, "currencies")
 
-  private var lastRates: Map[String, Double] = Map()
+  private var lastRates: Map[String, Rate] = Map()
 
-  override def update(isoCode: String, value: Double): Unit = {
-    OptionT(Future.successful(lastRates.get(isoCode)))
-      .orElse(OptionT(findLast(isoCode)))
-      .filter(_ != value)
+  override def update(rate: Rate): Unit = {
+    last(rate.code)
+      .filter(_.exists(_.rate != rate.rate))
       .map { _ ⇒
-      lastRates += isoCode → value
-      bsonDao.insert(Rate(isoCode, value, DateTime.now.getMillis))
+        lastRates += rate.code → rate
+        bsonDao.insert(rate.copy(timestamp = DateTime.now.getMillis.some))
     }
   }
 
@@ -50,12 +51,20 @@ trait MongoCurrencyRespository extends CurrencyRepository with BsonDsl {
     Source(Streams.enumeratorToPublisher(enumerator))
   }
 
-  private def findLast(isoCode: String): Future[Option[Double]] = {
-    bsonDao.find(
-      selector = fIsoCode $eq isoCode,
-      sort = fTimestamp $eq -1,
-      page = 1,
-      pageSize = 1
-    ).map(_.headOption.map(_.value))
+  def last(isoCode: String): Future[Option[Rate]] =
+    OptionT(Future.successful(lastRates.get(isoCode)))
+      .orElse(findLast(isoCode))
+      .run
+
+  private def findLast(isoCode: String): OptionT[Future, Rate] = {
+    OptionT(
+      bsonDao.find(
+        selector = fIsoCode $eq isoCode,
+        sort = fTimestamp $eq -1,
+        page = 1,
+        pageSize = 1
+      ).map(_.headOption)
+    )
   }
+
 }
