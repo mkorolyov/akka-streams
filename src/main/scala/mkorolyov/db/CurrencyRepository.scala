@@ -34,7 +34,7 @@ trait MongoCurrencyRespository extends CurrencyRepository with BsonDsl {
 
   override def update(rate: Rate): Unit = {
     last(rate.code)
-      .filter(_.exists(_.rate != rate.rate))
+      .filter(r ⇒ r.isEmpty || r.exists(_.rate != rate.rate))
       .map { _ ⇒
         lastRates += rate.code → rate
         bsonDao.insert(rate.copy(timestamp = DateTime.now.getMillis.some))

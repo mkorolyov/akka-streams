@@ -3,7 +3,7 @@ package mkorolyov.http
 import akka.actor.{Props, Actor}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives
-import akka.stream.scaladsl.ImplicitFlowMaterializer
+import akka.stream.scaladsl.ImplicitMaterializer
 import mkorolyov.Configuration
 import mkorolyov.db.MongoDbKernel
 import mkorolyov.http.CurrencyHttpEndpointActor.Start
@@ -12,7 +12,7 @@ import mkorolyov.service.CurrencyService
 class CurrencyHttpEndpointActor
   extends Actor
   with Directives
-  with ImplicitFlowMaterializer
+  with ImplicitMaterializer
   with CurrencyHttpRoute
   with CurrencyService
   with MongoDbKernel {

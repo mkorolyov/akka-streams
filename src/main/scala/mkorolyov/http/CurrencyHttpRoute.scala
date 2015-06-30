@@ -6,23 +6,13 @@ import mkorolyov.service.CurrencyService
 trait CurrencyHttpRoute extends Directives { self: CurrencyService ⇒
 
   private val currencies = "currencies"
-  private val histo = "histo"
 
   val route =
     decodeRequest {
-      pathPrefix(currencies) {
-        path(histo) {
-          logRequestResult(s"$currencies/$histo") {
-            get {
-              handleWebsocketMessages(history)
-            }
-          }
-        } ~ pathEnd {
-          logRequestResult(currencies) {
-            handleWebsocketMessages(actual)
-          }
+      path(currencies) {
+        logRequestResult(currencies) {
+          handleWebsocketMessages(loadRates(loader))
         }
-
       }
     }
 }

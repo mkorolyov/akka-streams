@@ -21,7 +21,7 @@ trait Dependencies extends Resolvers with Versions {
     "com.typesafe.akka" %% "akka-kernel" % akkaVer,
     /*"com.typesafe.akka" % "akka-stream-experimental_2.11" % "1.0-RC3",
     "com.typesafe.akka" % "akka-http-core-experimental_2.11" % "1.0-RC3",*/
-    "com.typesafe.akka" % "akka-http-experimental_2.11" % "1.0-RC3"
+    "com.typesafe.akka" % "akka-http-experimental_2.11" % "1.0-RC4"
   )
 
   val config = "com.typesafe" % "config" % "1.0.0"
