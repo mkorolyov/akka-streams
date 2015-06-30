@@ -15,6 +15,7 @@ class RateSourcePublisher(connector: ActorRef, isoCode: String)
 
   import context.dispatcher
 
+  //todo: move to config
   private val pubTimeout = 5 seconds
 
   context.system.scheduler.schedule(pubTimeout, pubTimeout, self, Publish)

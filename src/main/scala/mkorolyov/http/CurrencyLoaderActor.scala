@@ -19,6 +19,7 @@ import scala.concurrent.duration._
 import scalaz._
 import Scalaz._
 
+//todo: move to Pinned dispatcher.
 class CurrencyLoaderActor
   extends Actor
   with ActorLogging
@@ -28,6 +29,7 @@ class CurrencyLoaderActor
   import context.dispatcher
   import context.system
 
+  //todo: move to config
   private val ratesRequestTimeout = 5.seconds
 
   private var rates: Future[Iterable[Rate]] = _
