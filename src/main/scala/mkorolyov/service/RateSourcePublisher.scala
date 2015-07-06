@@ -21,14 +21,15 @@ class RateSourcePublisher(connector: ActorRef, isoCode: String)
   context.system.scheduler.schedule(pubTimeout, pubTimeout, self, Publish)
 
   def receive = LoggingReceive {
-    case Publish if isActive && totalDemand > 0 ⇒ connector ! Load(isoCode)
+    case Publish if isRequested ⇒ connector ! Load(isoCode)
     case RateResp(Some(rate)) ⇒ onNext(rate)
     case Cancel ⇒ self ! PoisonPill
-    case Request ⇒ //ignore
-    case other ⇒
-      println("mkorolyov.service.RateSourcePublisher")
-      println(other)
-      log.warning(s"received unhandler msg: $other")
+    case Request(_) ⇒ //ignore
+    case other ⇒ log.warning(s"received unhandler msg: $other")
+  }
+
+  def isRequested: Boolean = {
+    isActive && totalDemand > 0
   }
 
   case object Publish

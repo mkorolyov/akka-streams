@@ -45,6 +45,9 @@ trait CurrencyService {
 
           case None ⇒ TextMessage.Strict("unsupported request")
         }
+
+      case _ ⇒ TextMessage.Strict("unsupported request")
     }
   }
+
 }

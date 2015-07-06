@@ -8,7 +8,7 @@ object AppBuild extends Build with Dependencies with BuildUtils {
       Seq(
         organization := "mkorolyov",
         scalaVersion := "2.11.6",
-//        resolvers := depResolvers,
+        resolvers := depResolvers,
         libraryDependencies ~= withSources
       ): _*
     )
